@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -16,8 +18,19 @@ namespace TimetrackerReportingClient
 {
     internal class Program
     {
+        const String employeePath = @".\Data\employee.xml";
+        const String disciplinePath = @".\Data\WBSDiscipline.xml";
+        const String rndPath = @".\Data\WBSRandD.xml";
+
+        static XmlDocument employee = new XmlDocument();
+        static XmlDocument wbsDiscipline = new XmlDocument();
+        static XmlDocument wbsRandD = new XmlDocument();
+
         private static void Main(string[] args)
         {
+          
+            //System.Environment.Exit(0);
+
             bool parsed = false;
             CommandLineOptions cmd = null;
             // Get parameters
@@ -34,6 +47,10 @@ namespace TimetrackerReportingClient
                 return;
             }
 
+            Console.WriteLine("Enter Date of StartDate Week Ending (YYYY/MM/DD):");
+            string endDate = Console.ReadLine();
+            DateTime endstdt = DateTime.Parse(endDate);
+
             // Create OData service context
             var context = cmd.IsWindowsAuth
                 ? new TimetrackerOdataContext(cmd.ServiceUri)
@@ -49,15 +66,34 @@ namespace TimetrackerReportingClient
             }
             var workLogsWorkItemsExportResult = workLogsWorkItemsExport
                 // Perform query for 3 last months
-                .Where(s => s.Timestamp > DateTime.Today.AddMonths(-3) && s.Timestamp < DateTime.Today)
+                .Where(s => s.Timestamp > endstdt.AddDays(-7) && s.Timestamp < endstdt)
                 // orfer items by worklog date
                 .OrderByDescending(g => g.WorklogDate.ShortDate).ToArray();
+
+            DataTable timesheetData = TimesheetData.CreateDataTable();
 
             // Print out the result
             foreach (var row in workLogsWorkItemsExportResult)
             {
-                Console.WriteLine("{0:g} {1} {2}", row.WorklogDate.ShortDate, row.User.Name, row.PeriodLength);
+                double periodLength = row.PeriodLength;
+                double hours = periodLength / 3600;
+
+                Console.WriteLine("{0:g} {1} {2} {3} {4} {5}", row.WorklogDate.ShortDate, row.User.Name, hours, row.WorkItem.Microsoft_VSTS_Common_Activity, row.WorkItem.System_Id, row.WorkItem.CustomStringField1);
+                DataRow timesheetRow = timesheetData.NewRow();
+
+                timesheetRow["User"]  = row.User.Name;
+                timesheetRow["Date"] = row.WorklogDate.ShortDate;
+               
+                timesheetRow["Hours"] = String.Format("{0:0.##}", hours);
+                timesheetRow["Discipline"] = row.WorkItem.Microsoft_VSTS_Common_Activity;
+                timesheetRow["RnD Type"] = "0";
+                timesheetRow["Job Code"] = row.WorkItem.CustomStringField1;
+                timesheetRow["Work Item Id"] = row.WorkItem.System_Id.ToString();
+                timesheetRow["Project"] = row.WorkItem.System_TeamProject;
+                
+                timesheetData.Rows.Add(timesheetRow);
             }
+
             Export(cmd.Format, workLogsWorkItemsExportResult, "workLogsWorkItemsExport");
 
             Console.WriteLine("\r\nCall to worklogs done, click enter to call workItemsHierarchy endpoint");
@@ -73,6 +109,9 @@ namespace TimetrackerReportingClient
             Console.WriteLine("Call to workItemsHierarchy done");
             Export(cmd.Format, workItemsHierarchyExportResult, "workItemsHierarchyExport");
             Console.ReadLine();
+
+
+            ExportToSAP(timesheetData);
         }
 
         public static void Export(string format, object extendedData, string fileName)
@@ -124,5 +163,258 @@ namespace TimetrackerReportingClient
 
             Console.WriteLine($"\r\nExport to file {fileName}.{format} completed");
         }
+
+        public static void ExportToSAP(DataTable timesheetData)
+        {
+            DateTime today = DateTime.Today;
+            string csvpath = string.Empty;
+
+
+
+            //Load XML file for mapping process
+            employee.Load(employeePath);
+            wbsDiscipline.Load(disciplinePath);
+            wbsRandD.Load(rndPath);
+
+            //Read csv file from Timesheet format
+            //StreamReader reader = new StreamReader(csvpath);
+
+            ////Get the the data
+            //CsvParser.GetCsvParser getCsv = new CsvParser.GetCsvParser();
+            //DataTable dt = getCsv.Parse1(reader);
+
+            ////create list of table - Converted data to csv format
+            //List<DataTable> convertedCSVData = new List<DataTable>();
+            //DataTable copyTable = null;
+
+            //int count = 0;
+            //int countLimit = 200;
+
+            ////split data to 300row for each table/file
+            //foreach (DataRow dataRow in dt.Rows)
+            //{
+            //    if ((count++ % countLimit) == 0)
+            //    {
+            //        copyTable = dt.Clone();
+            //        convertedCSVData.Add(copyTable);
+            //    }
+            //    copyTable.ImportRow(dataRow);
+            //}
+
+            //List<DataTable> finalConvertedData = new List<DataTable>();
+            //DataRow row;
+
+            List<DataTable> finalConvertedData = new List<DataTable>();
+
+            //foreach (DataTable dataTables in convertedCSVData)
+            //{
+            //create datatable to put all the data from Timesheet Csv format
+            CsvParser.CreateDataTable create = new CsvParser.CreateDataTable();
+                DataTable dataTable = create.CreatingDataTable();
+
+                foreach (DataRow dataRow in timesheetData.Rows)
+                {
+                    DataRow row = dataTable.NewRow();
+
+                    string userName = dataRow["User"].ToString();
+                    string date = dataRow["Date"].ToString();
+                    string hours = dataRow["Hours"].ToString();
+                    string discipline = dataRow["Discipline"].ToString();
+                    string rnd = dataRow["RnD Type"].ToString();
+                    string jobCode = dataRow["Job Code"].ToString();
+                    string workID = dataRow["Work Item Id"].ToString();
+                    string project = dataRow["Project"].ToString();
+
+                    if (string.IsNullOrEmpty(userName))
+                    {
+                        throw new ArgumentNullException();
+                    }
+                    else
+                    {
+                        //get employee ID
+                        string empID = GetEmployeeCode(userName, employee);
+                        if (empID != null)
+                        {
+                            row["Employee Number"] = empID;
+                        }
+                        else if (empID == null)
+                        {
+                            string strLogText = String.Format("'{0}' is not in the employeecode.xml", userName);
+                            //                            createLog(strLogText);
+                        }
+
+                        row["Work Date"] = date;
+
+                        DateTime weekEnding = DateTime.Parse(GetWeekEnding(date));
+                        today = weekEnding;
+
+                        row["Week Ending"] = weekEnding.ToString("dd-MMM-yy");
+                        row["Hours"] = hours;
+
+                        //start creating/sorting SAP wbs level
+                        string sapWBSNo = GetWBSLevel(jobCode, discipline, rnd, userName, workID, project);
+                        row["SAP WBS No."] = sapWBSNo;
+
+                        if (sapWBSNo != "" && sapWBSNo != "Job Code is NULL" && sapWBSNo != "Job Code is not in the list" && empID != null)
+                        {
+                            dataTable.Rows.Add(row);
+                        }
+                    }
+                }
+
+                finalConvertedData.Add(dataTable);
+
+           // }
+
+            //Parse the data to csv file - SAP format
+            CsvParser.CsvWriter csvWriter = new CsvParser.CsvWriter();
+            int add = 1;
+
+            foreach (DataTable tb in finalConvertedData)
+            {
+                DateTime weekEnding2 = today;
+                string endDate_FileNameNew = (string.Format("{0:yyyyMMdd}", weekEnding2));
+
+                DateTime addDays = weekEnding2.AddDays(-6);
+                string startDate_FileNameNew = (string.Format("{0:yyyyMMdd}", addDays));
+
+                //Joining all the codes - SAP WBS No.
+                string[] join = { startDate_FileNameNew, "_", endDate_FileNameNew, "_", "(", add.ToString(), ")", ".", "csv" };
+                string fullFileName = String.Join("", join);
+
+                //Write the SAP file to specific file and location
+                StreamWriter writer = new StreamWriter(fullFileName);
+                csvWriter.WriteToStream(writer, tb, true, false);
+
+                //reader.Close();
+                //reader.Dispose();
+                writer.Close();
+                writer.Dispose();
+                add++;
+            }
+        }
+        private static string GetEmployeeCode(string name, XmlDocument employee)
+        {
+            string Id = null;
+
+            XmlNode node = employee.SelectSingleNode(@"root/employee[translate(name, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') = '" + name.ToLower() + "']/id");
+            if (node != null)
+            {
+                Id = node.InnerText;
+            }
+            else if (node == null)
+            {
+                Id = null;
+            }
+
+            return Id;
+        }
+
+        /// <summary>
+        /// Get week ending for working date
+        /// </summary>
+        /// <returns>Week Ending</returns>
+        private static string GetWeekEnding(string date)
+        {
+            string endValue = null;
+            IFormatProvider format = new CultureInfo("en-AU");
+            DateTime dateTime = DateTime.Parse(date, format);
+            DayOfWeek day = (DateTime.Parse(dateTime.ToString()).DayOfWeek);
+            if (day.ToString() == "Sunday")
+            {
+                int days = day - DayOfWeek.Monday;
+                DateTime start = DateTime.Parse(dateTime.ToString()).AddDays(-days);
+                DateTime end = start.AddDays(-1);
+                endValue = end.ToString();
+            }
+            else
+            {
+                int days = day - DayOfWeek.Monday;
+                DateTime start = DateTime.Parse(dateTime.ToString()).AddDays(-days);
+                DateTime end = start.AddDays(6);
+                endValue = end.ToString();
+            }
+
+            return endValue;
+        }
+
+        /// <summary>
+        /// Search for Job Code, discipline, rnd or admin level and returns SAP code.
+        /// </summary>
+        /// <returns>SAP code</returns>
+        private static string GetWBSLevel(string jobCode, string discipline, string rnd, string name, string workid, string project)
+        {
+            string node = null;
+
+            //Get employee location from EmployeeCodes.xml
+            string employeelocation = GetEmployeeLocation(name);
+
+            //Get SapCode
+            if (project == "Time Tracking")
+            {
+                node = jobCode;
+
+                node = node.Replace("XX", employeelocation);               
+            }
+            else
+            {
+                int index = jobCode.IndexOf('(');
+                if (index > 0)
+                {
+                    node = jobCode.Substring(index+1, jobCode.Length - index - 2);
+                    node = node + "-01-01-" + GetDisciplineCode(discipline);
+                }
+                else
+                {
+                    node = String.Empty;
+                }               
+            }
+
+            return node;
+        }
+
+
+        /// <summary>
+        /// Get employee location from EmployeeCodes.xml
+        /// </summary>
+        /// <returns>Employee Location</returns>
+        private static string GetEmployeeLocation(string name)
+        {
+            string EmpLoc = null;
+            XmlNode node = employee.SelectSingleNode(@"root/employee[translate(name, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') = '" + name.ToLower() + "']/location");
+
+            if (node != null)
+            {
+                EmpLoc = node.InnerText;
+            }
+            else if (node == null)
+            {
+                EmpLoc = null;
+            }
+
+            return EmpLoc;
+        }
+
+        /// <summary>
+        /// Get employee location from EmployeeCodes.xml
+        /// </summary>
+        /// <returns>Employee Location</returns>
+        private static string GetDisciplineCode(string discipline)
+        {
+            string disciplineCode = null;
+            XmlNode node = wbsDiscipline.SelectSingleNode(@"root/discipline[translate(name, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') = '" + discipline.ToLower() + "']/WBS");
+
+            if (node != null)
+            {
+                disciplineCode = node.InnerText;
+            }
+            else if (node == null)
+            {
+                disciplineCode = null;
+            }
+
+            return disciplineCode;
+        }
+
     }
 }

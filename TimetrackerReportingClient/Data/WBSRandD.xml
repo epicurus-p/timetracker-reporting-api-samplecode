@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<name>WBSRandD</name>
+	<values>
+		<RandD>
+			<name>Yes</name>
+			<WBS>02</WBS>
+		</RandD>
+		<RandD>
+			<name>No</name>
+			<WBS>01</WBS>
+		</RandD>
+	</values>
+</root>

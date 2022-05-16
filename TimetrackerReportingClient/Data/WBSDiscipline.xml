@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<discipline>
+		<name>Leadership</name>
+		<WBS>31</WBS>
+	</discipline>
+	<discipline>
+		<name>Meetings</name>
+		<WBS>32</WBS>
+	</discipline>
+	<discipline>
+		<name>Requirements</name>
+		<WBS>33</WBS>
+	</discipline>
+	<discipline>
+		<name>Architecture</name>
+		<WBS>34</WBS>
+	</discipline>
+	<discipline>
+		<name>Development</name>
+		<WBS>35</WBS>
+	</discipline>
+	<discipline>
+		<name>Bug Correction</name>
+		<WBS>36</WBS>
+	</discipline>
+	<discipline>
+		<name>Testing</name>
+		<WBS>37</WBS>
+	</discipline>
+	<discipline>
+		<name>User Documentation</name>
+		<WBS>38</WBS>
+	</discipline>
+	<discipline>
+		<name>Training Courses</name>
+		<WBS>39</WBS>
+	</discipline>
+	<discipline>
+		<name>Release Management</name>
+		<WBS>40</WBS>
+	</discipline>
+	<discipline>
+		<name>Internationalisation and Localisation</name>
+		<WBS>41</WBS>
+	</discipline>
+	<discipline>
+		<name>Pre-Sales</name>
+		<WBS>42</WBS>
+	</discipline>
+	<discipline>
+		<name>Implementation</name>
+		<WBS>43</WBS>
+	</discipline>		
+	<discipline>
+		<name>Customer Support</name>
+		<WBS>44</WBS>
+	</discipline>
+	<discipline>
+		<name>Other</name>
+		<WBS>45</WBS>
+	</discipline>
+</root>

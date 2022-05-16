@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <name>WBSAdmin</name>
+  <values>
+    <value>
+      <name>RAD-BR/PE/KL-00001-02-01-02</name>
+      <WBS>RAD-XX-00001-02-01-02</WBS>
+    </value>
+   	<value>
+	  <name>RAD-BR/PE/KL-00001-02-01-03</name>
+	  <WBS>RAD-XX-00001-02-01-03</WBS>
+	</value>
+	<value>
+	  <name>RAD-BR/PE/KL-00001-02-01-04</name>
+	  <WBS>RAD-XX-00001-02-01-04</WBS>
+	</value>
+	<value>
+	  <name>RAD-BR/PE/KL-00001-02-01-05</name>
+	  <WBS>RAD-XX-00001-02-01-05</WBS>
+	</value>
+	<value>
+	  <name>RAD-BR/PE/KL-00001-02-01-06</name>
+	  <WBS>RAD-XX-00001-02-01-06</WBS>
+	</value>
+	<value>
+	  <name>RAD-BR/PE/KL-00001-06-01-01</name>
+	  <WBS>RAD-XX-00001-06-01-01</WBS>
+	</value>
+  <value>
+    <name>RAD-BR-00019-01-02-02</name>
+    <WBS>RAD-BR-00019-01-02-02</WBS>
+  </value>
+  </values>
+</root>

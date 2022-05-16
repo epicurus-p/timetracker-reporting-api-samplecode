@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<name>WBSBRLeave</name>
+	<sap>RLV-AA-LEAVE-10</sap>
+	<values>
+		<value>
+			<name>Annual Leave</name>
+			<WBS>AL</WBS>
+		</value>
+		<value>
+			<name>Sick/Personal</name>
+			<WBS>SL</WBS>
+		</value>
+		<value>
+			<name>Public Holiday</name>
+			<WBS>PH</WBS>
+		</value>
+		<value>
+			<name>Time in Lieu</name>
+			<WBS>TL</WBS>
+		</value>
+		<value>
+			<name>Compassion</name>
+			<WBS>CL</WBS>
+		</value>
+		<value>
+			<name>Maternity</name>
+			<WBS>MT</WBS>
+		</value>
+		<value>
+			<name>Long Service</name>
+			<WBS>LS</WBS>
+		</value>
+		<value>
+			<name>Leave without Pay</name>
+			<WBS>WP</WBS>
+		</value>
+		<value>
+			<name>Paternity</name>
+			<WBS>PL</WBS>
+		</value>
+		<value>
+			<name>Study</name>
+			<WBS>ST</WBS>
+		</value>
+		<value>
+			<name>Jury Duty</name>
+			<WBS>JD</WBS>
+		</value>
+	</values>
+</root>
