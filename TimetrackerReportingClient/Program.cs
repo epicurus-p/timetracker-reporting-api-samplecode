@@ -96,19 +96,19 @@ namespace TimetrackerReportingClient
 
             Export(cmd.Format, workLogsWorkItemsExportResult, "workLogsWorkItemsExport");
 
-            Console.WriteLine("\r\nCall to worklogs done, click enter to call workItemsHierarchy endpoint");
+            Console.WriteLine("\r\nCall to worklogs done");
 
-            Console.ReadLine();
-            // request for work items with its hierarchy
-            var workItemsHierarchyExport = context.Container.workItemsHierarchy;
-            // fills rollup field with the sum of specified numeric field of work item and its children. Check https://support.7pace.com/hc/en-us/articles/360035502332-Reporting-API-Overview#rollupFields to get more information
-            workItemsHierarchyExport = workItemsHierarchyExport.AddQueryOption("rollupFields", "Microsoft.VSTS.Scheduling.CompletedWork");
-            var workItemsHierarchyExportResult = workItemsHierarchyExport
-                // Perform query for 3 last months
-                .Where(s => s.System_CreatedDate > DateTime.Today.AddDays(-10) && s.System_CreatedDate < DateTime.Today).ToArray();
-            Console.WriteLine("Call to workItemsHierarchy done");
-            Export(cmd.Format, workItemsHierarchyExportResult, "workItemsHierarchyExport");
-            Console.ReadLine();
+            //Console.ReadLine();
+            //// request for work items with its hierarchy
+            //var workItemsHierarchyExport = context.Container.workItemsHierarchy;
+            //// fills rollup field with the sum of specified numeric field of work item and its children. Check https://support.7pace.com/hc/en-us/articles/360035502332-Reporting-API-Overview#rollupFields to get more information
+            //workItemsHierarchyExport = workItemsHierarchyExport.AddQueryOption("rollupFields", "Microsoft.VSTS.Scheduling.CompletedWork");
+            //var workItemsHierarchyExportResult = workItemsHierarchyExport
+            //    // Perform query for 3 last months
+            //    .Where(s => s.System_CreatedDate > DateTime.Today.AddDays(-7) && s.System_CreatedDate < DateTime.Today).ToArray();
+            //Console.WriteLine("Call to workItemsHierarchy done");
+            //Export(cmd.Format, workItemsHierarchyExportResult, "workItemsHierarchyExport");
+            //Console.ReadLine();
 
 
             ExportToSAP(timesheetData);
