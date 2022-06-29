@@ -81,7 +81,7 @@ namespace TimetrackerReportingClient
                 Console.WriteLine("{0:g} {1} {2} {3} {4} {5}", row.WorklogDate.ShortDate, row.User.Name, hours, row.WorkItem.Microsoft_VSTS_Common_Activity, row.WorkItem.System_Id, row.WorkItem.CustomStringField1);
                 DataRow timesheetRow = timesheetData.NewRow();
 
-                timesheetRow["User"]  = row.User.Name;
+                timesheetRow["User"] = row.User.Email.Split('@')[0];
                 timesheetRow["Date"] = row.WorklogDate.ShortDate;
                
                 timesheetRow["Hours"] = String.Format("{0:0.##}", hours);
@@ -169,102 +169,78 @@ namespace TimetrackerReportingClient
             DateTime today = DateTime.Today;
             string csvpath = string.Empty;
 
-
-
             //Load XML file for mapping process
             employee.Load(employeePath);
             wbsDiscipline.Load(disciplinePath);
             wbsRandD.Load(rndPath);
 
-            //Read csv file from Timesheet format
-            //StreamReader reader = new StreamReader(csvpath);
-
-            ////Get the the data
-            //CsvParser.GetCsvParser getCsv = new CsvParser.GetCsvParser();
-            //DataTable dt = getCsv.Parse1(reader);
-
-            ////create list of table - Converted data to csv format
-            //List<DataTable> convertedCSVData = new List<DataTable>();
-            //DataTable copyTable = null;
-
-            //int count = 0;
-            //int countLimit = 200;
-
-            ////split data to 300row for each table/file
-            //foreach (DataRow dataRow in dt.Rows)
-            //{
-            //    if ((count++ % countLimit) == 0)
-            //    {
-            //        copyTable = dt.Clone();
-            //        convertedCSVData.Add(copyTable);
-            //    }
-            //    copyTable.ImportRow(dataRow);
-            //}
-
-            //List<DataTable> finalConvertedData = new List<DataTable>();
-            //DataRow row;
-
             List<DataTable> finalConvertedData = new List<DataTable>();
 
-            //foreach (DataTable dataTables in convertedCSVData)
-            //{
-            //create datatable to put all the data from Timesheet Csv format
             CsvParser.CreateDataTable create = new CsvParser.CreateDataTable();
-                DataTable dataTable = create.CreatingDataTable();
+            DataTable dataTable = create.CreatingDataTable();
 
-                foreach (DataRow dataRow in timesheetData.Rows)
+            int count = 0;
+            int countLimit = 100;
+
+            foreach (DataRow dataRow in timesheetData.Rows)
+            {
+                DataRow row = dataTable.NewRow();
+
+                string userName = dataRow["User"].ToString();
+                string date = dataRow["Date"].ToString();
+                string hours = dataRow["Hours"].ToString();
+                string discipline = dataRow["Discipline"].ToString();
+                string rnd = dataRow["RnD Type"].ToString();
+                string jobCode = dataRow["Job Code"].ToString();
+                string workID = dataRow["Work Item Id"].ToString();
+                string project = dataRow["Project"].ToString();
+
+                if (string.IsNullOrEmpty(userName))
                 {
-                    DataRow row = dataTable.NewRow();
-
-                    string userName = dataRow["User"].ToString();
-                    string date = dataRow["Date"].ToString();
-                    string hours = dataRow["Hours"].ToString();
-                    string discipline = dataRow["Discipline"].ToString();
-                    string rnd = dataRow["RnD Type"].ToString();
-                    string jobCode = dataRow["Job Code"].ToString();
-                    string workID = dataRow["Work Item Id"].ToString();
-                    string project = dataRow["Project"].ToString();
-
-                    if (string.IsNullOrEmpty(userName))
+                    throw new ArgumentNullException();
+                }
+                else
+                {
+                    //get employee ID
+                    string empID = GetEmployeeCode(userName, employee);
+                    if (empID != null)
                     {
-                        throw new ArgumentNullException();
+                        row["Employee Number"] = empID;
                     }
-                    else
+                    else if (empID == null)
                     {
-                        //get employee ID
-                        string empID = GetEmployeeCode(userName, employee);
-                        if (empID != null)
-                        {
-                            row["Employee Number"] = empID;
-                        }
-                        else if (empID == null)
-                        {
-                            string strLogText = String.Format("'{0}' is not in the employeecode.xml", userName);
-                            //                            createLog(strLogText);
-                        }
+                        string strLogText = String.Format("'{0}' is not in the employeecode.xml\n", userName);
+                        Console.WriteLine(strLogText);
+                    }
 
-                        row["Work Date"] = date;
+                    row["Work Date"] = DateTime.Parse(date).ToString("dd-MMM-yy");
 
-                        DateTime weekEnding = DateTime.Parse(GetWeekEnding(date));
-                        today = weekEnding;
+                    DateTime weekEnding = DateTime.Parse(GetWeekEnding(date));
+                    today = weekEnding;
 
-                        row["Week Ending"] = weekEnding.ToString("dd-MMM-yy");
-                        row["Hours"] = hours;
+                    row["Week Ending"] = weekEnding.ToString("dd-MMM-yy");
+                    row["Hours"] = hours;
 
-                        //start creating/sorting SAP wbs level
-                        string sapWBSNo = GetWBSLevel(jobCode, discipline, rnd, userName, workID, project);
-                        row["SAP WBS No."] = sapWBSNo;
+                    //start creating/sorting SAP wbs level
+                    string sapWBSNo = GetWBSLevel(jobCode, discipline, rnd, userName, workID, project);
+                    row["SAP WBS No."] = sapWBSNo;
 
-                        if (sapWBSNo != "" && sapWBSNo != "Job Code is NULL" && sapWBSNo != "Job Code is not in the list" && empID != null)
-                        {
-                            dataTable.Rows.Add(row);
-                        }
+                    if (sapWBSNo != "" && sapWBSNo != "Job Code is NULL" && sapWBSNo != "Job Code is not in the list" && empID != null)
+                    {
+                        dataTable.Rows.Add(row);
                     }
                 }
 
-                finalConvertedData.Add(dataTable);
+                if (count++ == countLimit)
+                {
+                    finalConvertedData.Add(dataTable);
+                    dataTable = create.CreatingDataTable();
+                    count = 0;
+                }
+           
+            }
 
-           // }
+            finalConvertedData.Add(dataTable);
 
             //Parse the data to csv file - SAP format
             CsvParser.CsvWriter csvWriter = new CsvParser.CsvWriter();
@@ -286,10 +262,15 @@ namespace TimetrackerReportingClient
                 StreamWriter writer = new StreamWriter(fullFileName);
                 csvWriter.WriteToStream(writer, tb, true, false);
 
-                //reader.Close();
-                //reader.Dispose();
+                //Write the basedata out as well
+                StreamWriter writer2 = new StreamWriter("base_timesheetData" + fullFileName);
+                csvWriter.WriteToStream(writer2, timesheetData, true, false);
+
                 writer.Close();
                 writer.Dispose();
+                writer2.Close();
+                writer2.Dispose();
+
                 add++;
             }
         }
@@ -367,6 +348,8 @@ namespace TimetrackerReportingClient
                 else
                 {
                     node = String.Empty;
+                    string strLogText = String.Format("'{0}' is not in the Job Code List.xml\n", workid);
+                    Console.WriteLine(strLogText);
                 }               
             }
 
@@ -390,6 +373,8 @@ namespace TimetrackerReportingClient
             else if (node == null)
             {
                 EmpLoc = null;
+                string strLogText = String.Format("'{0}' could not find location.\n", name);
+                Console.WriteLine(strLogText);
             }
 
             return EmpLoc;
@@ -411,6 +396,8 @@ namespace TimetrackerReportingClient
             else if (node == null)
             {
                 disciplineCode = null;
+                string strLogText = String.Format("'{0}' is not in the Activity List.xml\n", discipline);
+                Console.WriteLine(strLogText);
             }
 
             return disciplineCode;
