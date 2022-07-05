@@ -45,6 +45,11 @@
 <employee><name>SKOPALLI</name><id>000883</id><location>BR</location></employee>
 <employee><name>JKRUGER</name><id>000848</id><location>BR</location></employee>
 <employee><name>JLAM</name><id>000008</id><location>BR</location></employee>
+<employee>
+	<name>JCLAM</name>
+	<id>000008</id>
+	<location>BR</location>
+</employee>	
 <employee><name>TLANGTON</name><id>001162</id><location>BR</location></employee>
 <employee><name>JLI</name><id>001050</id><location>SY</location></employee>
 <employee><name>GLU</name><id>000936</id><location>SY</location></employee>
